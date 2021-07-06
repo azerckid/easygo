@@ -2,13 +2,48 @@ package main
 
 import (
 	"fmt"
-
-	"github.com/azerckid/easygo/accounts"
+	"net/http"
 )
 
+type requestResult struct {
+	url    string
+	status string
+}
+
+// var errRequestFailed = errors.New("request failed")
+
 func main() {
-	account := accounts.NewAccount("tessa")
-	account.Deposit(10)
-	balance := account.Balance()
-	fmt.Println(account, balance)
+	channel := make(chan requestResult)
+	results := make(map[string]string)
+	urls := []string{
+		"https://www.airbnb.com/",
+		"https://www.google.com/",
+		"https://www.amazon.com/",
+		"https://www.reddit.com/",
+		"https://www.soundcloud.com/",
+		"https://www.facebook.com/",
+		"https://www.instagram.com/",
+		"https://www.academy.nomadcoders.co/",
+	}
+
+	for _, url := range urls {
+		go hitURL(url, channel)
+	}
+	for i := 0; i < len(urls); i++ {
+		result := <-channel
+		results[result.url] = result.status
+	}
+	for url, status := range results {
+		fmt.Println(url, status)
+	}
+}
+
+func hitURL(url string, channel chan<- requestResult) {
+	// fmt.Println("Checking", url)
+	resp, err := http.Get(url)
+	status := "OK"
+	if err != nil || resp.StatusCode >= 400 {
+		status = "FAILED"
+	}
+	channel <- requestResult{url: url, status: status}
 }
